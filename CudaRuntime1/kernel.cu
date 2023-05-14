@@ -14,44 +14,40 @@ using namespace std;
 #ifndef DEFINE_H
 #define DEFINE_H
 #include <builtin_types.h>
+#include <chrono>
+using namespace std::chrono;
 #define FLOAT_ARRAY_TYPE float3
 #endif //DEFINE_H
-float const pi = 3.14f;
-float const kb = 8.61f * powf(10, -5); //
-float const epss = 1.03e-2f;
-float const sigg = 3.40f;
-float const min_r = 1.12f * sigg;
+double const pi = 3.14f;
+double const kb = 8.61f * powf(10, -5); //
+double const epss = 1.03e-2f;
+double const sigg = 3.40f;
+double const min_r = 1.12f * sigg;
 
-__constant__ float eps = 1.03e-2f;
-__constant__ float sig = 3.40f;
+__constant__ double eps = 1.03e-2f;
+__constant__ double sig = 3.40f;
 
-__host__ __device__ inline void checkPBC(FLOAT_ARRAY_TYPE* pos, float* boxSize);
+__host__ __device__ inline void checkPBC(FLOAT_ARRAY_TYPE* pos, double* boxSize);
 
-__device__ void gpuDistPBC(FLOAT_ARRAY_TYPE* dDist, FLOAT_ARRAY_TYPE* dA, FLOAT_ARRAY_TYPE* dB, float* boxSize);
+__device__ void gpuDistPBC(FLOAT_ARRAY_TYPE* dDist, FLOAT_ARRAY_TYPE* dA, FLOAT_ARRAY_TYPE* dB, double* boxSize);
 
-__device__ inline int gpuRnd(float b);
+__device__ inline int gpuRnd(double b);
 
 __device__ inline void gpuCumulateVec(FLOAT_ARRAY_TYPE* dVec, FLOAT_ARRAY_TYPE* dVecToAdd);
 
-
-
-
-
-
-
 class particle {
-    float Tem;
-    float bound = 5;
-    float Mass;
+    double Tem;
+    double bound = 5;
+    double Mass;
     FLOAT_ARRAY_TYPE momen;
  
 
    
 
-    float random_vel() {
-        float const a = sqrt(kb * Tem / Mass);
-        float q = ((float)rand() / (float)RAND_MAX);
-        float w = ((float)rand() / (float)RAND_MAX);
+    double random_vel() {
+        double const a = sqrt(kb * Tem / Mass);
+        double q = ((double)rand() / (double)RAND_MAX);
+        double w = ((double)rand() / (double)RAND_MAX);
         q = a * sqrt(-2 * log(q)) * cos(2 * pi * w);
         return q;
 
@@ -61,9 +57,9 @@ public:
     FLOAT_ARRAY_TYPE vel[1000];
 
 
-    float boxsize;
+    double boxsize;
     particle() {}
-    particle(float T, float M) :Tem(T), Mass(M) {
+    particle(double T, double M) :Tem(T), Mass(M) {
         momen.x = 0;
         momen.y = 0;
         momen.z = 0;
@@ -91,8 +87,8 @@ public:
 
 };
 
-__device__ void ljforce( FLOAT_ARRAY_TYPE *acce,FLOAT_ARRAY_TYPE* posa, FLOAT_ARRAY_TYPE* posb,float *boxsize,float *cutoffsqr) {
-    float r2, r6, fd;
+__device__ void ljforce( FLOAT_ARRAY_TYPE *acce,FLOAT_ARRAY_TYPE* posa, FLOAT_ARRAY_TYPE* posb,double *boxsize,double *cutoffsqr) {
+    double r2, r6, fd;
     FLOAT_ARRAY_TYPE d;
     gpuDistPBC(&d, posa, posb, boxsize);
     r2  = (d.x * d.x + d.y * d.y + d.z * d.z);
@@ -104,12 +100,9 @@ __device__ void ljforce( FLOAT_ARRAY_TYPE *acce,FLOAT_ARRAY_TYPE* posa, FLOAT_AR
         (*acce).y += fd * d.y;
         (*acce).z += fd * d.z;
     }
-
-
-
 }
 
- __device__ void gpuDistPBC(FLOAT_ARRAY_TYPE * dDist, FLOAT_ARRAY_TYPE * dA, FLOAT_ARRAY_TYPE * dB, float* boxSize)
+ __device__ void gpuDistPBC(FLOAT_ARRAY_TYPE * dDist, FLOAT_ARRAY_TYPE * dA, FLOAT_ARRAY_TYPE * dB, double* boxSize)
 {
   (*dDist).x = (*dA).x - (*dB).x;
   (*dDist).y = (*dA).y - (*dB).y;
@@ -119,12 +112,12 @@ __device__ void ljforce( FLOAT_ARRAY_TYPE *acce,FLOAT_ARRAY_TYPE* posa, FLOAT_AR
     (*dDist).z = ((*dDist).z - gpuRnd((*dDist).z / (*boxSize)) * (*boxSize));
  }
 
- __device__ inline int gpuRnd(float b)
+ __device__ inline int gpuRnd(double b)
  {
      return b < 0.0f ? static_cast<int>(b - 0.5f) : static_cast<int>(b + 0.5f);
  }
 
- __global__ void gpuLJForces(FLOAT_ARRAY_TYPE* dPos, FLOAT_ARRAY_TYPE* dForce, int N, float boxsize,float cutoff)
+ __global__ void gpuLJForces(FLOAT_ARRAY_TYPE* dPos, FLOAT_ARRAY_TYPE* dForce, int N, double boxsize,double cutoff)
 {
    int tid = threadIdx.x;
    int idx = blockDim.x * blockIdx.x + tid;
@@ -165,13 +158,13 @@ __device__ void ljforce( FLOAT_ARRAY_TYPE *acce,FLOAT_ARRAY_TYPE* posa, FLOAT_AR
  }
  }
 
-__global__ void gpuIntegratorLeapFrog(FLOAT_ARRAY_TYPE * dPos, FLOAT_ARRAY_TYPE * dVel, FLOAT_ARRAY_TYPE * dForce, int N, float dt, float boxsize)
+__global__ void gpuIntegratorLeapFrog(FLOAT_ARRAY_TYPE * dPos, FLOAT_ARRAY_TYPE * dVel, FLOAT_ARRAY_TYPE * dForce, int N, double dt, double boxsize)
 {
         int tid = threadIdx.x;
         int idx = blockDim.x * blockIdx.x + tid;
   if (idx < N)
         {
-         float dx, dy, dz;
+         double dx, dy, dz;
 
                 dVel[idx].x = dVel[idx].x + dt * dForce[idx].x;
                 dVel[idx].y = dVel[idx].y + dt * dForce[idx].y;
@@ -189,7 +182,8 @@ __global__ void gpuIntegratorLeapFrog(FLOAT_ARRAY_TYPE * dPos, FLOAT_ARRAY_TYPE 
                 checkPBC(&dPos[idx], &boxsize);
          }
     }
-__host__ __device__ inline void checkPBC(FLOAT_ARRAY_TYPE * pos, float* boxSize)
+
+__host__ __device__ inline void checkPBC(FLOAT_ARRAY_TYPE * pos, double* boxSize)
 {
    (*pos).x = (*pos).x - int((*pos).x / (*boxSize)) * (*boxSize);
      if ((*pos).x < 0.0f) (*pos).x = (*pos).x + (*boxSize);
@@ -204,7 +198,7 @@ __host__ __device__ inline void checkPBC(FLOAT_ARRAY_TYPE * pos, float* boxSize)
 __global__ void gpuComponentSumReduce1(FLOAT_ARRAY_TYPE* dInData, FLOAT_ARRAY_TYPE* dInterData, int numInterData, int numThreads, int N)
  {
  extern __shared__ FLOAT_ARRAY_TYPE smema[];
-            int tid = threadIdx.x;
+     int tid = threadIdx.x;
      int bid = blockIdx.x;
      int idx = bid * blockDim.x + tid;
      FLOAT_ARRAY_TYPE s;
@@ -277,7 +271,7 @@ __global__ void gpuComponentSumReduce2(FLOAT_ARRAY_TYPE* dInterData, int numInte
 
 void componentSumReduction(FLOAT_ARRAY_TYPE* dInData, FLOAT_ARRAY_TYPE* dInterData, int numInterData, int numThreads, int N)
  {
-             int smem = numThreads * sizeof(FLOAT_ARRAY_TYPE);
+         int smem = numThreads * sizeof(FLOAT_ARRAY_TYPE);
          gpuComponentSumReduce1 << <numInterData, numThreads, smem >> > (dInData, dInterData, numInterData, numThreads, N);
          gpuComponentSumReduce2 << <1, numThreads, smem >> > (dInterData, numInterData, numThreads);
  }
@@ -306,7 +300,6 @@ void removeDrift(int N, int numInterData, int numThreads, int threads, int block
    gpuRemoveDriftKernel << <blocks, threads >> > (N, dVel, compSum);
    }
 
-
  void write(int i, FLOAT_ARRAY_TYPE* pos) {
      ofstream of;
      fstream f;
@@ -326,18 +319,18 @@ void removeDrift(int N, int numInterData, int numThreads, int threads, int block
 int main()
 {
     srand((unsigned)time(NULL));
-    float cutoff = 2.5 * sigg;
-    float cutoffsqr = cutoff * cutoff;
+    double cutoff = 2.5 * sigg;
+    double cutoffsqr = cutoff * cutoff;
     int N = 1000;
     int steps;
     int redM = 128;
     int redN = 128;
-    float T, M;
-    cout << "input Temperature and Mass" << endl;
-    cin >> T >> M;
+    double T, M=1.0f;
+    cout << "input Temperature " << endl;
+    cin >> T ;
     cout << "Number of steps" << endl;
     cin >> steps;
-    float dt = 0.1;
+    double dt = 0.01;
     particle atom(T,M);
     FLOAT_ARRAY_TYPE *d_pos;
     FLOAT_ARRAY_TYPE *d_velocity;
@@ -345,7 +338,7 @@ int main()
     FLOAT_ARRAY_TYPE* compReduction;
     int NUM_THREADS = 512;
     int NUM_BLOCKS = N / NUM_THREADS + (N % NUM_THREADS == 0 ? 0 : 1);
-    float bound = atom.boxsize;
+    double bound = atom.boxsize;
     ofstream Outttfile("particle.xyz", ofstream::trunc);
     Outttfile.close();
     FLOAT_ARRAY_TYPE* h_pos;
@@ -390,7 +383,7 @@ int main()
         fprintf(stderr, "cudaMemcpy failed!");
         goto Error;
     }
-
+    auto start = high_resolution_clock::now();
     gpuResetForces <<<dimGrid, dimBlock >>> (d_acceleration, 1000);
     cout << "[0/" << steps << "]";
     for (int i = 0; i < steps; i++) {
@@ -404,10 +397,11 @@ int main()
         cout << "[" << i + 1 << "/" << steps << "]";
 
     }
-
-
-    
-
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<seconds>(stop - start);
+    cout << endl;
+    cout << "Used " << duration.count()<<"seconds" << endl;
+    cin >> T;
 
 
 
