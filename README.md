@@ -1,6 +1,7 @@
 # LJ-potential simulation
 ## Overview
 The program is inspire by the website [https://www.complexfluids.ethz.ch/mdgpu/doc/html/group__LJforce.html](https://www.complexfluids.ethz.ch/mdgpu/doc/html/index.html). It will perform the simulation once the user input initial temperature(in K) and number of simulation steps. The program will output a file named 'particle.xyz'. It can perfrom visualized simulation in the program VMD<br/>
+The program file is located at CudaRuntime1/kernel.cu.<br/>
 The simulation used parameter from argon particle and the initial velocity is initialized by Boltzmann distribution.
 ## Components of the program
 ### __device__ void ljforce( FLOAT_ARRAY_TYPE* acce,FLOAT_ARRAY_TYPE* posa, FLOAT_ARRAY_TYPE* posb,double *boxsize,double *cutoffsqr)
