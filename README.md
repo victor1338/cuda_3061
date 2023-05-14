@@ -1,6 +1,6 @@
 # LJ-potential simulation
 ## Overview
-The program is inspire by the website [https://www.complexfluids.ethz.ch/mdgpu/doc/html/group__LJforce.html](https://www.complexfluids.ethz.ch/mdgpu/doc/html/index.html). It will perform the simulation once the user input initial temperature and number of simulation steps.<br/>
+The program is inspire by the website [https://www.complexfluids.ethz.ch/mdgpu/doc/html/group__LJforce.html](https://www.complexfluids.ethz.ch/mdgpu/doc/html/index.html). It will perform the simulation once the user input initial temperature(in K) and number of simulation steps. The program will output a file named 'particle.xyz'. It can perfrom visualized simulation in the program VMD<br/>
 The simulation used parameter from argon particle and the initial velocity is initialized by Boltzmann distribution.
 ## Components of the program
 ### __device__ void ljforce( FLOAT_ARRAY_TYPE* acce,FLOAT_ARRAY_TYPE* posa, FLOAT_ARRAY_TYPE* posb,double *boxsize,double *cutoffsqr)
@@ -29,3 +29,5 @@ Add all value from dInterData to dInData. The result will be stored into dIndata
 Perform centre of mass correction for each vector. The result will stored in dVel.
 ### void removeDrift(int N, int numInterData, int numThreads, int threads, int blocks, FLOAT_ARRAY_TYPE * dVel, FLOAT_ARRAY_TYPE * compSum)
 To perform the whole precodure for centre of mass correction.
+###  void write(int i, FLOAT_ARRAY_TYPE* pos)
+Write the current position into file "particle.xyz"
