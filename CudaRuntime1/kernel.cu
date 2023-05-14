@@ -18,36 +18,36 @@ using namespace std;
 using namespace std::chrono;
 #define FLOAT_ARRAY_TYPE float3
 #endif //DEFINE_H
-double const pi = 3.14f;
-double const kb = 8.61f * powf(10, -5); //
-double const epss = 1.03e-2f;
-double const sigg = 3.40f;
-double const min_r = 1.12f * sigg;
+float const pi = 3.14f;
+float const kb = 8.61f * powf(10, -5); //
+float const epss = 1.03e-2f;
+float const sigg = 3.40f;
+float const min_r = 1.12f * sigg;
 
-__constant__ double eps = 1.03e-2f;
-__constant__ double sig = 3.40f;
+__constant__ float eps = 1.03e-2f;
+__constant__ float sig = 3.40f;
 
-__host__ __device__ inline void checkPBC(FLOAT_ARRAY_TYPE* pos, double* boxSize);
+__host__ __device__ inline void checkPBC(FLOAT_ARRAY_TYPE* pos, float* boxSize);
 
-__device__ void gpuDistPBC(FLOAT_ARRAY_TYPE* dDist, FLOAT_ARRAY_TYPE* dA, FLOAT_ARRAY_TYPE* dB, double* boxSize);
+__device__ void gpuDistPBC(FLOAT_ARRAY_TYPE* dDist, FLOAT_ARRAY_TYPE* dA, FLOAT_ARRAY_TYPE* dB, float* boxSize);
 
-__device__ inline int gpuRnd(double b);
+__device__ inline int gpuRnd(float b);
 
 __device__ inline void gpuCumulateVec(FLOAT_ARRAY_TYPE* dVec, FLOAT_ARRAY_TYPE* dVecToAdd);
 
 class particle {
-    double Tem;
-    double bound = 5;
-    double Mass;
+    float Tem;
+    float bound = 5;
+    float Mass;
     FLOAT_ARRAY_TYPE momen;
  
 
    
 
-    double random_vel() {
-        double const a = sqrt(kb * Tem / Mass);
-        double q = ((double)rand() / (double)RAND_MAX);
-        double w = ((double)rand() / (double)RAND_MAX);
+    float random_vel() {
+        float const a = sqrt(kb * Tem / Mass);
+        float q = ((float)rand() / (float)RAND_MAX);
+        float w = ((float)rand() / (float)RAND_MAX);
         q = a * sqrt(-2 * log(q)) * cos(2 * pi * w);
         return q;
 
@@ -57,9 +57,9 @@ public:
     FLOAT_ARRAY_TYPE vel[1000];
 
 
-    double boxsize;
+    float boxsize;
     particle() {}
-    particle(double T, double M) :Tem(T), Mass(M) {
+    particle(float T, float M) :Tem(T), Mass(M) {
         momen.x = 0;
         momen.y = 0;
         momen.z = 0;
@@ -87,8 +87,8 @@ public:
 
 };
 
-__device__ void ljforce( FLOAT_ARRAY_TYPE *acce,FLOAT_ARRAY_TYPE* posa, FLOAT_ARRAY_TYPE* posb,double *boxsize,double *cutoffsqr) {
-    double r2, r6, fd;
+__device__ void ljforce( FLOAT_ARRAY_TYPE *acce,FLOAT_ARRAY_TYPE* posa, FLOAT_ARRAY_TYPE* posb,float *boxsize,float *cutoffsqr) {
+    float r2, r6, fd;
     FLOAT_ARRAY_TYPE d;
     gpuDistPBC(&d, posa, posb, boxsize);
     r2  = (d.x * d.x + d.y * d.y + d.z * d.z);
@@ -102,7 +102,7 @@ __device__ void ljforce( FLOAT_ARRAY_TYPE *acce,FLOAT_ARRAY_TYPE* posa, FLOAT_AR
     }
 }
 
- __device__ void gpuDistPBC(FLOAT_ARRAY_TYPE * dDist, FLOAT_ARRAY_TYPE * dA, FLOAT_ARRAY_TYPE * dB, double* boxSize)
+ __device__ void gpuDistPBC(FLOAT_ARRAY_TYPE * dDist, FLOAT_ARRAY_TYPE * dA, FLOAT_ARRAY_TYPE * dB, float* boxSize)
 {
   (*dDist).x = (*dA).x - (*dB).x;
   (*dDist).y = (*dA).y - (*dB).y;
@@ -112,12 +112,12 @@ __device__ void ljforce( FLOAT_ARRAY_TYPE *acce,FLOAT_ARRAY_TYPE* posa, FLOAT_AR
     (*dDist).z = ((*dDist).z - gpuRnd((*dDist).z / (*boxSize)) * (*boxSize));
  }
 
- __device__ inline int gpuRnd(double b)
+ __device__ inline int gpuRnd(float b)
  {
      return b < 0.0f ? static_cast<int>(b - 0.5f) : static_cast<int>(b + 0.5f);
  }
 
- __global__ void gpuLJForces(FLOAT_ARRAY_TYPE* dPos, FLOAT_ARRAY_TYPE* dForce, int N, double boxsize,double cutoff)
+ __global__ void gpuLJForces(FLOAT_ARRAY_TYPE* dPos, FLOAT_ARRAY_TYPE* dForce, int N, float boxsize,float cutoff)
 {
    int tid = threadIdx.x;
    int idx = blockDim.x * blockIdx.x + tid;
@@ -158,13 +158,13 @@ __device__ void ljforce( FLOAT_ARRAY_TYPE *acce,FLOAT_ARRAY_TYPE* posa, FLOAT_AR
  }
  }
 
-__global__ void gpuIntegratorLeapFrog(FLOAT_ARRAY_TYPE * dPos, FLOAT_ARRAY_TYPE * dVel, FLOAT_ARRAY_TYPE * dForce, int N, double dt, double boxsize)
+__global__ void gpuIntegratorLeapFrog(FLOAT_ARRAY_TYPE * dPos, FLOAT_ARRAY_TYPE * dVel, FLOAT_ARRAY_TYPE * dForce, int N, float dt, float boxsize)
 {
         int tid = threadIdx.x;
         int idx = blockDim.x * blockIdx.x + tid;
   if (idx < N)
         {
-         double dx, dy, dz;
+         float dx, dy, dz;
 
                 dVel[idx].x = dVel[idx].x + dt * dForce[idx].x;
                 dVel[idx].y = dVel[idx].y + dt * dForce[idx].y;
@@ -183,7 +183,7 @@ __global__ void gpuIntegratorLeapFrog(FLOAT_ARRAY_TYPE * dPos, FLOAT_ARRAY_TYPE 
          }
     }
 
-__host__ __device__ inline void checkPBC(FLOAT_ARRAY_TYPE * pos, double* boxSize)
+__host__ __device__ inline void checkPBC(FLOAT_ARRAY_TYPE * pos, float* boxSize)
 {
    (*pos).x = (*pos).x - int((*pos).x / (*boxSize)) * (*boxSize);
      if ((*pos).x < 0.0f) (*pos).x = (*pos).x + (*boxSize);
@@ -319,18 +319,18 @@ void removeDrift(int N, int numInterData, int numThreads, int threads, int block
 int main()
 {
     srand((unsigned)time(NULL));
-    double cutoff = 2.5 * sigg;
-    double cutoffsqr = cutoff * cutoff;
+    float cutoff = 2.5 * sigg;
+    float cutoffsqr = cutoff * cutoff;
     int N = 1000;
     int steps;
     int redM = 128;
     int redN = 128;
-    double T, M=1.0f;
+    float T, M=1.0f;
     cout << "input Temperature " << endl;
     cin >> T ;
     cout << "Number of steps" << endl;
     cin >> steps;
-    double dt = 0.01;
+    float dt = 0.01;
     particle atom(T,M);
     FLOAT_ARRAY_TYPE *d_pos;
     FLOAT_ARRAY_TYPE *d_velocity;
@@ -338,7 +338,7 @@ int main()
     FLOAT_ARRAY_TYPE* compReduction;
     int NUM_THREADS = 512;
     int NUM_BLOCKS = N / NUM_THREADS + (N % NUM_THREADS == 0 ? 0 : 1);
-    double bound = atom.boxsize;
+    float bound = atom.boxsize;
     ofstream Outttfile("particle.xyz", ofstream::trunc);
     Outttfile.close();
     FLOAT_ARRAY_TYPE* h_pos;
